@@ -1,0 +1,16 @@
+exports.CATEGORIES = [
+    "electronics",
+    "bag",
+    "camera",
+    "computers",
+    "office",
+    "food",
+    "beverage",
+    "alcohol",
+    "sports",
+    "outdoors",
+    "clothing",
+    "shoes",
+    "jewelry",
+    "peripherals",
+];
