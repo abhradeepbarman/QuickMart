@@ -22,13 +22,10 @@ const userSchema = new mongoose.Schema(
         isActive: {
             type: Boolean,
             default: true,
-            select: false,
         },
         password: {
             type: String,
             required: [true, "Please enter your password"],
-            minLength: 7,
-            maxLength: 30,
             select: false,
         },
         phoneNumber: {
@@ -47,10 +44,6 @@ const userSchema = new mongoose.Schema(
         isAdmin: {
             type: Boolean,
             default: false,
-        },
-        refreshToken: {
-            type: String,
-            select: false,
         }
     },
     { timestamps: true }
