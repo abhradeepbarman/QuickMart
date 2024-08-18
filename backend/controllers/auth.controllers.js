@@ -2,6 +2,10 @@ const User = require("../models/user.model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
+const otpGenerator = require("otp-generator");
+const { mailSender } = require("../utils/sendMail");
+const { forgotPasswordTemplate } = require("../templates/forgot-password-mail");
+const Otp = require("../models/otp.model");
 
 exports.registerUser = async (req, res) => {
     // validation
@@ -117,6 +121,118 @@ exports.loginUser = async (req, res) => {
                 message: "User logged in successfully",
                 user: { ...user.toObject(), token },
             });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+};
+
+exports.forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is required",
+            });
+        }
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "User does not exist",
+            });
+        }
+
+        const otp = otpGenerator.generate(6, {
+            digits: true,
+            lowerCaseAlphabets: false,
+            upperCaseAlphabets: false,
+            specialChars: false,
+        });
+
+        const isMailSent = await mailSender({
+            receiver: email,
+            subject: "Forgot Password",
+            message: forgotPasswordTemplate(otp),
+        });
+
+        if (!isMailSent) {
+            return res.status(500).json({
+                success: false,
+                message: "Error while sending mail",
+            });
+        }
+
+        const newOtp = await Otp.create({
+            email,
+            otp,
+        });
+
+        if (!newOtp) {
+            return res.status(500).json({
+                success: false,
+                message: "Error while saving otp",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "OTP sent successfully",
+            otp: newOtp.otp,
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+};
+
+exports.verifyOtp = async (req, res) => {
+    // {email, otp}
+    // validation
+    // search in db
+    // compare otp
+    // return response
+
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required",
+            });
+        }
+
+        const recentOtp = await Otp.find({ email })
+            ?.sort({ createdAt: -1 })
+            ?.limit(1);
+
+        if (recentOtp.length == 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Otp expired or You've entered wrong email",
+            });
+        }
+
+        if (recentOtp[0].otp !== otp) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid otp",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Otp verified successfully",
+        });
     } catch (error) {
         console.error(error);
         return res.status(500).json({

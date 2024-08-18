@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const validator = require("validator");
 
 const otpSchema = new mongoose.Schema(
     {
@@ -11,8 +10,16 @@ const otpSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        // TODO: OTP delete after 5 minutes
+        createdAt: {
+            type: Date,
+            default: Date.now,
+            expires: 300,
+        }
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+    }
 );
 
 const Otp = mongoose.model("Otp", otpSchema);
