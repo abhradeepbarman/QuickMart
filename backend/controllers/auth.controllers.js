@@ -241,3 +241,159 @@ exports.verifyOtp = async (req, res) => {
         });
     }
 };
+
+exports.resetPassword = async (req, res) => {
+    // take input
+    // validate
+    // compare password
+    // check if user exists
+    // hash password    
+    // save in db
+    // return response
+
+    try {
+        const { email, password, confirmPassword } = req.body;
+
+        if (!email || !password || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required",
+            });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match",
+            });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "User does not exist",
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        if (!hashedPassword) {
+            return res.status(500).json({
+                success: false,
+                message: "Error while hashing password",
+            });
+        }
+
+        user.password = hashedPassword;
+        const updatedUser = await user.save();
+
+        if (!updatedUser) {
+            return res.status(500).json({
+                success: false,
+                message: "Error while updating password",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Password reset successfully",
+            updatedUser,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    // take input
+    // validate
+    // compare passwords
+    // check if user exists
+    // hash password
+    // update password
+    // return response
+
+    try {
+        const { oldPassword, newPassword, confirmPassword } = req.body;
+        const userId = req.userId;
+
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required",
+            });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Passwords do not match",
+            });
+        }
+
+        const user = await User.findById(userId)?.select("+password");
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "User does not exist",
+            });
+        }        
+        
+        const isSame = await bcrypt.compare(oldPassword, user.password);
+        
+        if (!isSame) {
+            return res.status(400).json({
+                success: false,
+                message: "Old password is incorrect",
+            })
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        user.password = hashedPassword;
+        const updatedUser = await user.save();
+
+        if (!updatedUser) {
+            return res.status(500).json({
+                success: false,
+                message: "Error while updating password",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Password changed successfully",
+            updatedUser,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+};
+
+exports.signOut = async(req, res) => {
+    try {
+        res.clearCookie("auth_token");
+
+        return res.status(200).json({
+            success: true,
+            message: "Sign out successfully",
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+        });
+    }
+}
